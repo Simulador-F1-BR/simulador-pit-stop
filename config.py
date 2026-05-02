@@ -1,10 +1,15 @@
 from datetime import datetime
-
+import os
 import fastf1
 import streamlit as st
 
-# cache FastF1
-fastf1.Cache.enable_cache("./cache")
+
+cache_dir = "./cache"
+if not os.path.exists(cache_dir):
+    os.makedirs(cache_dir)
+
+fastf1.Cache.enable_cache(cache_dir)
+
 
 # temporadas suportadas
 CURRENT_YEAR = datetime.now().year
