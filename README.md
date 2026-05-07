@@ -134,7 +134,6 @@ Esses cenários demonstraram robustez analítica, capacidade de generalização 
 | **Streamlit** | Interface interativa |
 | **FastF1** | Extração de telemetria FIA |
 | **Pandas / NumPy** | Manipulação e modelagem de dados |
-| **Scikit-learn** | Regressão Linear |
 | **Matplotlib / Plotly** | Visualização analítica |
 
 ---
