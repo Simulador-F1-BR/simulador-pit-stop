@@ -208,6 +208,9 @@ def _is_finished_status(status_value):
 
     if "finished" in status:
         return True
+    
+    if "lapped" in status:
+        return True
 
     if status.startswith("+") and "lap" in status:
         return True
