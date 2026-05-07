@@ -1,6 +1,34 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import base64
+
+GP_TRANSLATIONS = {
+    "Bahrain Grand Prix": "GP do Bahrein 🇧🇭",
+    "Saudi Arabian Grand Prix": "GP da Arábia Saudita 🇸🇦",
+    "Australian Grand Prix": "GP da Austrália 🇦🇺",
+    "Azerbaijan Grand Prix": "GP do Azerbaijão 🇦🇿",
+    "Miami Grand Prix": "GP de Miami 🇺🇸",
+    "Emilia Romagna Grand Prix": "GP da Emilia-Romagna 🇮🇹",
+    "Monaco Grand Prix": "GP de Mônaco 🇲🇨",
+    "Spanish Grand Prix": "GP da Espanha 🇪🇸",
+    "Canadian Grand Prix": "GP do Canadá 🇨🇦",
+    "Austrian Grand Prix": "GP da Áustria 🇦🇹",
+    "British Grand Prix": "GP da Grã-Bretanha 🇬🇧",
+    "Hungarian Grand Prix": "GP da Hungria 🇭🇺",
+    "Belgian Grand Prix": "GP da Bélgica 🇧🇪",
+    "Dutch Grand Prix": "GP da Holanda 🇳🇱",
+    "Italian Grand Prix": "GP da Itália 🇮🇹",
+    "Singapore Grand Prix": "GP de Singapura 🇸🇬",
+    "Japanese Grand Prix": "GP do Japão 🇯🇵",
+    "Qatar Grand Prix": "GP do Catar 🇶🇦",
+    "United States Grand Prix": "GP dos Estados Unidos 🇺🇸",
+    "Mexico City Grand Prix": "GP da Cidade do México 🇲🇽",
+    "São Paulo Grand Prix": "GP de São Paulo 🇧🇷",
+    "Las Vegas Grand Prix": "GP de Las Vegas 🇺🇸",
+    "Abu Dhabi Grand Prix": "GP de Abu Dhabi 🇦🇪",
+    "Chinese Grand Prix": "GP da China 🇨🇳"
+}
 
 from analytics import (
     calculate_compound_models,
@@ -88,7 +116,7 @@ st.markdown(
     .subtitulo {
         text-align: center;
         font-size: 18px;
-        color: gray;
+        color: white;
         margin-bottom: 30px;
         font-family: 'Poppins', sans-serif;
     }
@@ -142,7 +170,95 @@ with st.sidebar:
         st.stop()
 
     event_names = [event["name"] for event in events]
-    selected_event = st.selectbox("📍 GP", event_names)
+    selected_event = st.selectbox(
+    "📍 GP", 
+    event_names,
+    format_func=lambda x: GP_TRANSLATIONS.get(x, x) 
+    )
+    
+    def get_base64_of_bin_file(bin_file):
+        with open(bin_file, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+
+    GP_BACKGROUNDS = {
+        "Bahrain Grand Prix": "assets/bahrein.jpeg",
+        "São Paulo Grand Prix": "assets/interlagos.jpeg",
+        "Italian Grand Prix": "assets/monza.png",
+        "Las Vegas Grand Prix": "assets/las vegas.jpeg",
+        "Saudi Arabian Grand Prix": "assets/arabia_saudita.png",
+        "Australian Grand Prix": "assets/australia.jpeg",
+        "Azerbaijan Grand Prix": "assets/azerbaijao.jpeg",
+        "Miami Grand Prix": "assets/miami.jpeg",
+        "Emilia Romagna Grand Prix": "assets/imola.jpeg",
+        "Monaco Grand Prix": "assets/monaco.jpeg",
+        "Spanish Grand Prix": "assets/espanha.jpeg",
+        "Canadian Grand Prix": "assets/canada.jpeg",
+        "Austrian Grand Prix": "assets/austria.jpeg",
+        "British Grand Prix": "assets/silverstone.jpeg",
+        "Hungarian Grand Prix": "assets/hungria.jpeg",
+        "Belgian Grand Prix": "assets/spa.jpeg",
+        "Dutch Grand Prix": "assets/zandvoort.jpeg",
+        "Singapore Grand Prix": "assets/singapura.jpeg",
+        "Japanese Grand Prix": "assets/suzuka.jpeg",
+        "Qatar Grand Prix": "assets/catar.jpeg",
+        "United States Grand Prix": "assets/austin.jpeg",
+        "Mexico City Grand Prix": "assets/mexico.jpeg",
+        "Abu Dhabi Grand Prix": "assets/abu_dhabi.jpeg",
+        "Chinese Grand Prix": "assets/china.jpeg"
+    }
+
+    caminho_imagem = GP_BACKGROUNDS.get(selected_event, "assets/default_f1.jpeg")
+
+    try:
+        img_base64 = get_base64_of_bin_file(caminho_imagem)
+        bg_image_css = f"linear-gradient(rgba(14, 17, 23, 0.85), rgba(14, 17, 23, 0.88)), url('data:image/jpeg;base64,{img_base64}')"
+    except FileNotFoundError:
+        bg_image_css = "none"
+
+    page_bg_img = f"""
+    <style>
+    .stApp {{
+        background-image: {bg_image_css};
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+    }}
+
+    .main {{
+        background-color: transparent !important;
+    }}
+
+    h1, h2, h3, p, span, div[data-testid="metric-container"] label {{
+        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+    }}
+    .stApp {{
+    background-image: {bg_image_css};
+    background-size: cover;
+    background-position: center top; 
+    background-attachment: fixed;
+    }}
+
+    .main {{
+        background-color: transparent !important;
+    }}
+
+    .block-container {{
+        padding-top: 1rem !important;
+        margin-top: 0 !important;
+    }}
+
+    header[data-testid="stHeader"] {{
+        background-color: transparent !important;
+    }}
+
+    h1, h2, h3, p, span, div[data-testid="metric-container"] label {{
+        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+    }}
+    </style>
+    """
+
+    st.markdown(page_bg_img, unsafe_allow_html=True)
 
     selected_round = next(
         event["round"]
@@ -669,7 +785,7 @@ if weather_data:
             st.metric("🟧 Voltas SC", track_status["sc_laps"])
 
         with t5:
-            st.metric("🟥 Voltas vermelhas", track_status["red_laps"])
+            st.metric("🟥 Bandeiras vermelhas", track_status["red_laps"])
 
 st.divider()
 

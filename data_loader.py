@@ -217,10 +217,6 @@ def _is_finished_status(status_value):
 
 @st.cache_data
 def get_available_events(year: int, session_type: str = "R"):
-    """
-    Retorna eventos cujo tipo de sessao ja aconteceu.
-    Para previsao futura, FP2 liberara GPs que ja tiveram sexta-feira.
-    """
     try:
         schedule = fastf1.get_event_schedule(year)
         schedule = schedule.dropna(subset=["EventName"])
@@ -262,9 +258,6 @@ def get_available_events(year: int, session_type: str = "R"):
 
 @st.cache_data
 def get_available_practice_sessions(year: int, round_number: int):
-    """
-    Lista os treinos livres disponiveis para previsao no GP selecionado.
-    """
     try:
         schedule = fastf1.get_event_schedule(year)
         row = _get_event_row(schedule, round_number)
@@ -293,9 +286,6 @@ def get_available_practice_sessions(year: int, round_number: int):
 
 @st.cache_resource
 def load_session(year: int, round_number: int, session_type: str = "R"):
-    """
-    Carrega uma sessao FIA: corrida ou FP2.
-    """
     session = fastf1.get_session(year, round_number, session_type)
     session.load(
         laps=True,
@@ -308,9 +298,6 @@ def load_session(year: int, round_number: int, session_type: str = "R"):
 
 
 def get_drivers(session):
-    """
-    Lista pilotos disponiveis.
-    """
     drivers = []
 
     for drv in session.drivers:
@@ -333,9 +320,6 @@ def get_drivers(session):
 
 
 def get_weather(session):
-    """
-    Media climatica FIA.
-    """
     try:
         weather = session.weather_data.copy()
 
@@ -354,9 +338,6 @@ def get_weather(session):
 
 
 def get_driver_result_info(session, driver_code):
-    """
-    Resumo do resultado oficial do piloto.
-    """
     try:
         results = session.results.copy()
 
@@ -406,9 +387,6 @@ def get_driver_result_info(session, driver_code):
 
 
 def get_driver_result_time(session, driver_code):
-    """
-    Tempo oficial de prova do piloto, quando houver classificacao final.
-    """
     info = get_driver_result_info(session, driver_code)
 
     if not info:
@@ -418,10 +396,6 @@ def get_driver_result_time(session, driver_code):
 
 
 def get_driver_laps(session, driver_code, session_type: str = "R"):
-    """
-    Retorna voltas validas do piloto.
-    Em FP2, filtra apenas long runs uteis para previsao.
-    """
     laps = (
         session.laps.pick_drivers(driver_code)
         .sort_values("LapNumber")
