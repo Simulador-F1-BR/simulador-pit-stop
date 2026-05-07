@@ -120,7 +120,7 @@ O simulador foi validado com cenários distintos:
 
 - **GP do Brasil 2024** → comportamento caótico e múltiplas interrupções;
 - **GP de Mônaco 2025** → convergência com estratégia vencedora real;
-- **GP de Miami 2026** → projeção preditiva baseada em dados de FP2.
+- **GP de Miami 2026** → projeção preditiva baseada em dados de TL1.
 
 Esses cenários demonstraram robustez analítica, capacidade de generalização e aplicação prática do modelo.
 
