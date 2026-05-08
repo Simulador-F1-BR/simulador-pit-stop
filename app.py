@@ -314,6 +314,8 @@ with st.sidebar:
         for driver in drivers
         if f'{driver["name"]} ({driver["code"]})' == selected_driver_label
     )
+    with st.spinner("Carregando telemetria do piloto..."):
+        session.load()
 
     preview_laps = get_driver_laps(
         session,
