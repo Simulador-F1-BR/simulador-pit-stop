@@ -287,10 +287,9 @@ def get_available_practice_sessions(year: int, round_number: int):
         return []
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_resource
 def load_session(year: int, round_number: int, session_type: str = "R"):
     session = fastf1.get_session(year, round_number, session_type)
-
     session.load(
         laps=True,
         telemetry=False,
@@ -299,6 +298,7 @@ def load_session(year: int, round_number: int, session_type: str = "R"):
     )
 
     return session
+
 
 def get_drivers(session):
     drivers = []
