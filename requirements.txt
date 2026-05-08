@@ -1,5 +1,5 @@
-streamlit
-fastf1
-pandas
-numpy
-plotly
+streamlit==1.49.1
+fastf1==3.8.2
+pandas==2.3.1
+numpy==2.3.2
+plotly==6.2.0

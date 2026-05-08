@@ -2,6 +2,11 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import base64
+import os
+import fastf1
+
+cache_dir = os.path.join(os.getcwd(), "cache")
+fastf1.Cache.enable_cache(cache_dir)
 
 GP_TRANSLATIONS = {
     "Bahrain Grand Prix": "GP do Bahrein 🇧🇭",
@@ -314,8 +319,6 @@ with st.sidebar:
         for driver in drivers
         if f'{driver["name"]} ({driver["code"]})' == selected_driver_label
     )
-    with st.spinner("Carregando telemetria do piloto..."):
-        session.load()
 
     preview_laps = get_driver_laps(
         session,
