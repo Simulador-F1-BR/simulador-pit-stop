@@ -287,7 +287,7 @@ def get_available_practice_sessions(year: int, round_number: int):
         return []
 
 
-@st.cache_resource
+@st.cache_data
 def load_session(year: int, round_number: int, session_type: str = "R"):
     session = fastf1.get_session(year, round_number, session_type)
     session.load(
@@ -296,7 +296,6 @@ def load_session(year: int, round_number: int, session_type: str = "R"):
         weather=True,
         messages=False
     )
-
     return session
 
 
@@ -399,11 +398,16 @@ def get_driver_result_time(session, driver_code):
 
 
 def get_driver_laps(session, driver_code, session_type: str = "R"):
-    laps = (
-        session.laps.pick_drivers(driver_code)
-        .sort_values("LapNumber")
-        .copy()
-    )
+    try:
+        laps = (
+            session.laps.pick_drivers(driver_code)
+            .sort_values("LapNumber")
+            .copy()
+        )
+    except Exception:
+        load_session.clear()
+        st.error("A sessão expirou. Por favor, recarregue a página.")
+        st.stop()
 
     if laps.empty:
         return pd.DataFrame()
