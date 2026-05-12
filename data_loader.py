@@ -287,8 +287,8 @@ def get_available_practice_sessions(year: int, round_number: int):
         return []
 
 
-@st.cache_data
-def load_session(year: int, round_number: int, session_type: str = "R"):
+@st.cache_resource
+def _load_session_cached(year: int, round_number: int, session_type: str = "R"):
     session = fastf1.get_session(year, round_number, session_type)
     session.load(
         laps=True,
@@ -296,6 +296,21 @@ def load_session(year: int, round_number: int, session_type: str = "R"):
         weather=True,
         messages=False
     )
+
+    return session
+
+
+def load_session(year: int, round_number: int, session_type: str = "R"):
+    session = _load_session_cached(year, round_number, session_type)
+
+    # Detecta se o objeto perdeu os dados (acontece após Streamlit hibernar)
+    try:
+        _ = session.laps
+    except Exception:
+        # Cache com objeto morto — força recarregamento
+        _load_session_cached.clear()
+        session = _load_session_cached(year, round_number, session_type)
+
     return session
 
 
@@ -398,16 +413,11 @@ def get_driver_result_time(session, driver_code):
 
 
 def get_driver_laps(session, driver_code, session_type: str = "R"):
-    try:
-        laps = (
-            session.laps.pick_drivers(driver_code)
-            .sort_values("LapNumber")
-            .copy()
-        )
-    except Exception:
-        load_session.clear()
-        st.error("A sessão expirou. Por favor, recarregue a página.")
-        st.stop()
+    laps = (
+        session.laps.pick_drivers(driver_code)
+        .sort_values("LapNumber")
+        .copy()
+    )
 
     if laps.empty:
         return pd.DataFrame()
