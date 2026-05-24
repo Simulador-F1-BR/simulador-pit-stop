@@ -19,10 +19,6 @@ SESSION_NAME_MATCHERS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Helpers internos
-# ---------------------------------------------------------------------------
-
 def _normalize_session_timestamp(value):
     if pd.isna(value):
         return None
@@ -169,10 +165,6 @@ def _is_finished_status(status_value):
 
 
 def _sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Remove colunas com tipos não serializáveis pelo Streamlit (timedelta, etc.)
-    mantendo apenas as colunas que o restante do código precisa.
-    """
     keep = [
         "LapNumber", "LapSeconds", "Compound", "TyreLife", "Stint",
         "PitInTime", "PitOutTime", "TrackStatus", "Position",
@@ -181,7 +173,6 @@ def _sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
     existing = [c for c in keep if c in df.columns]
     out = df[existing].copy()
 
-    # Converte timedelta para float (segundos) para garantir serialização
     for col in ["PitInTime", "PitOutTime"]:
         if col in out.columns:
             try:
@@ -194,100 +185,93 @@ def _sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _extract_from_session(session) -> dict:
+    laps_internal = session._laps
+    if laps_internal is None or laps_internal.empty:
+        raise ValueError("session._laps está vazio após session.load()")
+
+    laps_raw = laps_internal.copy()
+
+    drivers = []
+    for drv in session.drivers:
+        try:
+            info = session.get_driver(drv)
+            drivers.append({
+                "code": info["Abbreviation"],
+                "name": info["FullName"],
+            })
+        except Exception:
+            pass
+    drivers = sorted(drivers, key=lambda d: d["name"])
+
+    weather = None
+    try:
+        w = session.weather_data.copy()
+        if not w.empty:
+            weather = {
+                "air_temp": float(w["AirTemp"].mean()),
+                "track_temp": float(w["TrackTemp"].mean()),
+                "humidity": float(w["Humidity"].mean()),
+                "rainfall": bool(w["Rainfall"].any()),
+            }
+    except Exception:
+        pass
+
+    results_raw = pd.DataFrame()
+    try:
+        results_raw = session.results.copy()
+    except Exception:
+        pass
+
+    total_laps = None
+    try:
+        total_laps = int(session.total_laps)
+    except Exception:
+        pass
+
+    return {
+        "laps": laps_raw,
+        "drivers": drivers,
+        "weather": weather,
+        "results": results_raw,
+        "total_laps": total_laps,
+    }
+
+
 def _load_session_raw(year: int, round_number: int, session_type: str):
-    """
-    Carrega a sessão FastF1 e extrai tudo que precisamos como dicts/DataFrames
-    puros ANTES de retornar — o objeto Session nunca sai desta função.
-    """
-    max_attempts = 3
+    max_attempts = 4
     for attempt in range(max_attempts):
+        is_last = attempt == max_attempts - 1
+        wait = 20 * (attempt + 1)
+
         try:
             session = fastf1.get_session(year, round_number, session_type)
             session.load(laps=True, telemetry=False, weather=True, messages=False)
-
-            # --- laps ---
-            laps_raw = session.laps.copy() if session.laps is not None else pd.DataFrame()
-
-            # --- drivers ---
-            drivers = []
-            for drv in session.drivers:
-                try:
-                    info = session.get_driver(drv)
-                    drivers.append({
-                        "code": info["Abbreviation"],
-                        "name": info["FullName"],
-                    })
-                except Exception:
-                    pass
-            drivers = sorted(drivers, key=lambda d: d["name"])
-
-            # --- weather ---
-            weather = None
-            try:
-                w = session.weather_data.copy()
-                if not w.empty:
-                    weather = {
-                        "air_temp": float(w["AirTemp"].mean()),
-                        "track_temp": float(w["TrackTemp"].mean()),
-                        "humidity": float(w["Humidity"].mean()),
-                        "rainfall": bool(w["Rainfall"].any()),
-                    }
-            except Exception:
-                pass
-
-            # --- results ---
-            results_raw = pd.DataFrame()
-            try:
-                results_raw = session.results.copy()
-            except Exception:
-                pass
-
-            # --- total_laps ---
-            total_laps = None
-            try:
-                total_laps = int(session.total_laps)
-            except Exception:
-                pass
-
-            return {
-                "laps": laps_raw,
-                "drivers": drivers,
-                "weather": weather,
-                "results": results_raw,
-                "total_laps": total_laps,
-            }
+            return _extract_from_session(session)
 
         except RateLimitExceededError:
-            if attempt < max_attempts - 1:
-                wait = 20 * (attempt + 1)
-                st.warning(
-                    f"API do FastF1 com limite de requisições. "
-                    f"Aguardando {wait}s... ({attempt + 1}/{max_attempts - 1})"
-                )
-                time.sleep(wait)
-            else:
+            if is_last:
                 st.error(
-                    "Não foi possível carregar a sessão: limite de requisições da API FastF1. "
+                    "Limite de requisições da API FastF1 atingido. "
                     "Aguarde alguns minutos e recarregue a página."
                 )
                 st.stop()
-        except Exception as e:
-            st.error(f"Erro inesperado ao carregar sessão: {e}")
-            st.stop()
+            st.warning(f"Rate limit da API. Aguardando {wait}s... (tentativa {attempt + 1}/{max_attempts})")
+            time.sleep(wait)
 
-
-# ---------------------------------------------------------------------------
-# Cache — armazena apenas dados primitivos/DataFrames, nunca o objeto Session
-# ---------------------------------------------------------------------------
+        except Exception:
+            if is_last:
+                st.error(
+                    "Não foi possível carregar os dados da sessão após várias tentativas. "
+                    "Recarregue a página. Se o erro persistir, aguarde alguns minutos."
+                )
+                st.stop()
+            time.sleep(wait)
 
 @st.cache_data(show_spinner=False)
 def _get_session_data(year: int, round_number: int, session_type: str) -> dict:
     return _load_session_raw(year, round_number, session_type)
 
-
-# ---------------------------------------------------------------------------
-# API pública — mesma assinatura de antes para o app.py não mudar
-# ---------------------------------------------------------------------------
 
 @st.cache_data
 def get_available_events(year: int, session_type: str = "R"):
@@ -339,10 +323,6 @@ def get_available_practice_sessions(year: int, round_number: int):
 
 
 def load_session(year: int, round_number: int, session_type: str = "R"):
-    """
-    Retorna um dict com os dados da sessão (não o objeto Session).
-    O app.py passa esse dict para as demais funções no lugar do objeto session.
-    """
     return _get_session_data(year, round_number, session_type)
 
 
